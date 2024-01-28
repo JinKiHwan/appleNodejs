@@ -4,6 +4,7 @@ const app = express();
 
 /* 스타일경로 등록 */
 app.use(express.static(__dirname + '/public'));
+app.set('view engine', 'ejs'); //html 파일이 아닌 ejs파일을 만들어야 함
 
 /* 몽고디비 연동하기 위한 세팅 */
 const { MongoClient } = require('mongodb');
@@ -48,8 +49,7 @@ app.get('/shop', (요청, 응답) => {
 app.get('/list', async (요청, 응답) => {
   let result = await db.collection('post').find().toArray(); //db에서 출력하는 방법
   //await 는 자바스크립트가 실행되기 전에 다음 코드가 진행되는걸 막는 코드
-  응답.send(result[0].title);
-  console.log(result);
+  응답.render('list.ejs', { post: result });
 });
 
 /*node라이브러리  npm install -g nodemon */
@@ -57,3 +57,6 @@ app.get('/list', async (요청, 응답) => {
 
 /* 몽고DB 연동 */
 // npm install mongodb@5
+
+/*  html안에 데이터를 꽂아넣는 법 */
+//템플릿 엔진 : ejs - npm install ejs
