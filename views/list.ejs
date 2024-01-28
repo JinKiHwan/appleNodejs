@@ -9,15 +9,20 @@
     <link rel="stylesheet" href="/main.css" />
   </head>
   <body class="grey-bg">
+    <!-- include 하는 방법 -->
+    <%- include('nav.ejs',{age:20}) %>
+    <!-- //include 하는 방법 -->
+
     <div class="white-bg">
+      <%for (let i=0; i < post.length; i++){ %>
       <div class="list-box">
-        <h4><%= JSON.stringify(post[0].content)%></h4>
-        <p>글내용임</p>
+        <h4><%= post[i].title%></h4>
+        <p><%= post[i].content%></p>
       </div>
-      <div class="list-box">
-        <h4>글제목임</h4>
-        <p>글내용임</p>
-      </div>
+      <%}%>
     </div>
+
+    <!-- ejs문법 -->
+    <!-- <% 자바스크립트 / <%- include(html) / <%= 데이터바인딩(text) -->
   </body>
 </html>

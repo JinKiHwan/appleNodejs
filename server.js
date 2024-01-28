@@ -52,6 +52,13 @@ app.get('/list', async (요청, 응답) => {
   응답.render('list.ejs', { post: result });
 });
 
+/* 숙제 - /time 이라고 접속하면 현재 서버의 시간을 보내주는 기능을 만들어봅시다. */
+app.get('/time', (요청, 응답) => {
+  let whatTimeIsNow = new Date();
+  console.log(whatTimeIsNow);
+  응답.render('time.ejs', { time: whatTimeIsNow });
+});
+
 /*node라이브러리  npm install -g nodemon */
 /* nodemon server.js <-터미널 입력 */
 
@@ -60,3 +67,7 @@ app.get('/list', async (요청, 응답) => {
 
 /*  html안에 데이터를 꽂아넣는 법 */
 //템플릿 엔진 : ejs - npm install ejs
+//1. ejs 사용하여 서버에 데이터 꽂아넣기
+//2. ejs 파일은 views폴더에 만들기
+//3. 응답.render로 유저한테 보낼 수 있음
+//4. ejs 파일로 서버데이터 전송하여 html에 박아넣기도 가능
