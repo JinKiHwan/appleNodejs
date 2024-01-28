@@ -76,6 +76,15 @@ app.get('/time', (요청, 응답) => {
 //4. ejs 파일로 서버데이터 전송하여 html에 박아넣기도 가능
 
 /* 글작성 페이지 */
+
+//수업 요약
+//1. 코드 짤 때는 한글로 먼저 적은 뒤 코드로 번역
+//2. form 쓰면 POST 요청 가능
+//3. 서버에서 요청.body 쓸 수 있음
+//4. DB Document 발행은 .insertOne()
+//5. 유저가 보낸 데이터 검사는 if else
+//6. 에러상황 처리는 try catch
+
 app.get('/write', (요청, 응답) => {
   응답.render('write.ejs');
 });
