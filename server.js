@@ -90,7 +90,7 @@ app.get('/write', (요청, 응답) => {
 });
 
 app.post('/add', async (요청, 응답) => {
-  console.log(요청.body);
+  //console.log(요청.body);
 
   /* 서버가 만약 다운된다던지 문제가 있었을 경우 try/catch*/
   try {
@@ -112,7 +112,6 @@ app.post('/add', async (요청, 응답) => {
 app.get('/detail/:id', async (요청, 응답) => {
   try {
     let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
-    console.log(result);
 
     if (result == null) {
       응답.status(500).send('이상한 URL 입력했는데요');
@@ -122,4 +121,22 @@ app.get('/detail/:id', async (요청, 응답) => {
   } catch (e) {
     응답.status(500).send('이상한 URL 입력했는데요');
   }
+});
+
+/* 수정하기 기능개발 */
+
+app.get('/edit/:id', async (요청, 응답) => {
+  let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) });
+
+  //console.log(요청.body);
+  응답.render('edit.ejs', { result: result });
+});
+
+app.post('/edit', async (요청, 응답) => {
+  /* 글 수정하기 */
+  // db.collection('post').updateOne({어떤 document},{$set:{어떤 내용으로 수정할지}})
+
+  let result = await db.collection('post').updateOne({ _id: new ObjectId(요청.body.id) }, { $set: { title: 요청.body.title, content: 요청.body.content } });
+
+  응답.redirect('/list');
 });

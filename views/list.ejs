@@ -16,10 +16,8 @@
     <div class="white-bg">
       <% for (let i=0; i < post.length; i++){ %>
       <div class="list-box" style="cursor: pointer">
-        <a href="/detail/<%= post[i]._id %>">
-          <h4><%= post[i].title %></h4>
-          <p><%= post[i].content %></p>
-        </a>
+        <h4><a href="/detail/<%= post[i]._id %>"><%= post[i].title %></a><a href="/edit/<%= post[i]._id %>">🎈</a></h4>
+        <p><%= post[i].content %></p>
       </div>
       <%}%>
     </div>
