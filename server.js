@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* 몽고디비 연동하기 위한 세팅 */
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 let db;
 const url = 'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority'; //몽고디비 database -> connect -> drivers
@@ -50,7 +50,7 @@ app.get('/shop', (요청, 응답) => {
 });
 
 app.get('/list', async (요청, 응답) => {
-  let result = await db.collection('post').find().toArray(); //db에서 출력하는 방법
+  let result = await db.collection('post').find().toArray(); //db에서 자료를 전부 가져오는 방법
   //await 는 자바스크립트가 실행되기 전에 다음 코드가 진행되는걸 막는 코드
   응답.render('list.ejs', { post: result });
 });
@@ -107,4 +107,12 @@ app.post('/add', async (요청, 응답) => {
     console.log(e);
     응답.status(500).send('서버 에러나써요');
   }
+});
+
+app.get('/detail/:id', async (요청, 응답) => {
+  let result = await db.collection('post').findOne({ _id: new ObjectId() }); //db에서 자료 하나만 가져오는 방법
+
+  console.log(요청.params);
+
+  응답.render('detail.ejs', {});
 });
