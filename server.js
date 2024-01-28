@@ -110,9 +110,16 @@ app.post('/add', async (요청, 응답) => {
 });
 
 app.get('/detail/:id', async (요청, 응답) => {
-  let result = await db.collection('post').findOne({ _id: new ObjectId() }); //db에서 자료 하나만 가져오는 방법
+  try {
+    let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
+    console.log(result);
 
-  console.log(요청.params);
+    if (result == null) {
+      응답.status(500).send('이상한 URL 입력했는데요');
+    }
 
-  응답.render('detail.ejs', {});
+    응답.render('detail.ejs', { result: result });
+  } catch (e) {
+    응답.status(500).send('이상한 URL 입력했는데요');
+  }
 });
