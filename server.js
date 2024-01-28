@@ -6,6 +6,10 @@ const app = express();
 app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'ejs'); //html 파일이 아닌 ejs파일을 만들어야 함
 
+/* post 세팅 */
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 /* 몽고디비 연동하기 위한 세팅 */
 const { MongoClient } = require('mongodb');
 
@@ -34,8 +38,7 @@ app.get('/', (요청, 응답) => {
   응답.sendFile(__dirname + '/index.html');
 });
 app.get('/news', (요청, 응답) => {
-  db.collection('post').insertOne({ title: '어쩌구' });
-  //응답.send('오늘비옴~~');
+  응답.send('오늘비옴~~');
 });
 
 app.get('/about', (요청, 응답) => {
@@ -71,3 +74,28 @@ app.get('/time', (요청, 응답) => {
 //2. ejs 파일은 views폴더에 만들기
 //3. 응답.render로 유저한테 보낼 수 있음
 //4. ejs 파일로 서버데이터 전송하여 html에 박아넣기도 가능
+
+/* 글작성 페이지 */
+app.get('/write', (요청, 응답) => {
+  응답.render('write.ejs');
+});
+
+app.post('/add', async (요청, 응답) => {
+  console.log(요청.body);
+
+  /* 서버가 만약 다운된다던지 문제가 있었을 경우 try/catch*/
+  try {
+    //먼저 실행해보고
+
+    if (요청.body.title == '' || 요청.body.content == '') {
+      응답.send('제목입력안했음;');
+    } else {
+      await db.collection('post').insertOne({ title: 요청.body.title, content: 요청.body.content });
+      응답.redirect('/list');
+    }
+  } catch (e) {
+    //에러시 이거 ㄱㄱ
+    console.log(e);
+    응답.status(500).send('서버 에러나써요');
+  }
+});
