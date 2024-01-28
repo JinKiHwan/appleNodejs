@@ -45,6 +45,13 @@ app.get('/shop', (요청, 응답) => {
   응답.send('쇼핑페이지입니다');
 });
 
+app.get('/list', async (요청, 응답) => {
+  let result = await db.collection('post').find().toArray(); //db에서 출력하는 방법
+  //await 는 자바스크립트가 실행되기 전에 다음 코드가 진행되는걸 막는 코드
+  응답.send(result[0].title);
+  console.log(result);
+});
+
 /*node라이브러리  npm install -g nodemon */
 /* nodemon server.js <-터미널 입력 */
 
