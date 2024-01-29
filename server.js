@@ -189,3 +189,16 @@ app.delete('/delete', async (요청, 응답) => {
     .deleteOne({ _id: new ObjectId(요청.query.docid) });
   응답.send('삭제완료');
 });
+
+/* 페이지네이션 만들기 */
+app.get('/list/1', async (요청, 응답) => {
+  //1~5 글 찾아 result 변수에 저장
+  let result = await db.collection('post').find().limit(5).toArray();
+  응답.render('list.ejs', { post: result });
+});
+
+app.get('/list/2', async (요청, 응답) => {
+  //1~5 글 찾아 result 변수에 저장
+  let result = await db.collection('post').find().skip(5).limit(5).toArray();
+  응답.render('list.ejs', { post: result });
+});
