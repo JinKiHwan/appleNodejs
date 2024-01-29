@@ -205,6 +205,7 @@ app.get('/list/:id', async (요청, 응답) => {
 });
 
 /* skip 단점을 보완한 방법 */
+//다음 버튼만 가능ㅋㅋ
 app.get('/list/next/:id', async (요청, 응답) => {
   let result = await db
     .collection('post')
@@ -212,4 +213,62 @@ app.get('/list/next/:id', async (요청, 응답) => {
     .limit(5)
     .toArray();
   응답.render('list.ejs', { post: result });
+});
+
+/* 회원가입 기능 - session*/
+//1. 회원가입
+//2. 로그인기능
+//3. 로그인 완료시 세션 만들기
+//4. 로그인 완료시 유저에게 입장권 전달
+//5. 로그인여부 체크를 위한 입장권 확인
+//이 모든 것을 'passport 라이브러리'구현할 시 쉽게 가능
+//npm install express-session passport
+
+/* passport 라이브러리 세팅 */
+const session = require('express-session');
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+
+//app.use 순서 중요
+app.use(passport.initialize());
+app.use(
+  session({
+    secret: '암호화에 쓸 비번', //세션의 document id는 암호화해서 유저에게 보냄 털리면 끝남
+    resave: false, //유저가 요청할 때마다 세션 갱신할건지 의미. 일반적으로 'false'를 해둠
+    saveUninitialized: false, //로그인을 안해도 세션을 만들 것인지를 의미
+  })
+);
+
+app.use(passport.session());
+/* //passport 라이브러리 세팅 */
+
+app.get('/login', async (요청, 응답) => {
+  응답.render('login.ejs');
+});
+
+//login.ejs에서 정보를 받은 뒤 db랑 비교 후 세션 생성 - passport 라이브러리
+passport.use(
+  new LocalStrategy(async (입력한아이디, 입력한비번, cb) => {
+    let result = await db.collection('user').findOne({ username: 입력한아이디 });
+    if (!result) {
+      return cb(null, false, { message: '아이디 DB에 없음' });
+    }
+    if (result.password == 입력한비번) {
+      return cb(null, result);
+    } else {
+      return cb(null, false, { message: '비번불일치' });
+    }
+  })
+);
+
+app.post('/login', async (요청, 응답, next) => {
+  /* 위 passport.use 코드 실행 */
+  passport.authenticate('local', (error, user, info) => {
+    if (error) return 응답.status(500).json(error);
+    if (!error) return 응답.status(401).json(info.message);
+    요청.logIn(user, (err) => {
+      if (err) return next(err);
+      응답.redirect('/');
+    });
+  })(요청, 응답, next);
 });
