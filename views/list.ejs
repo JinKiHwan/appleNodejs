@@ -16,11 +16,30 @@
     <div class="white-bg">
       <% for (let i=0; i < post.length; i++){ %>
       <div class="list-box" style="cursor: pointer">
-        <h4><a href="/detail/<%= post[i]._id %>"><%= post[i].title %></a><a href="/edit/<%= post[i]._id %>">🎈</a></h4>
+        <h4>
+          <a href="/detail/<%= post[i]._id %>"><%= post[i].title %></a
+          ><a href="/edit/<%= post[i]._id %>">🎈</a
+          ><span class="delete" data-id="<%= post[i]._id %>">🗑️</span>
+        </h4>
         <p><%= post[i].content %></p>
       </div>
       <%}%>
     </div>
+
+    <script>
+      let box = document.querySelectorAll('.list-box');
+
+      for (let i = 0; i < box.length; i++) {
+        document
+          .querySelectorAll('.delete')
+          [i].addEventListener('click', function (e) {
+            console.log(e.target.dataset.id);
+            fetch('/delete?docid=' + e.target.dataset.id, {
+              method: 'DELETE',
+            });
+          });
+      }
+    </script>
 
     <!-- ejs문법 -->
     <!-- <% %>자바스크립트 / <%- %>include(html) / <%= %>데이터바인딩(text) -->

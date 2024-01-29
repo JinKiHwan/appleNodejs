@@ -158,7 +158,9 @@ app.put('/edit', async (요청, 응답) => {
 
   응답.redirect('/list');
 
-  await db.collection('post').updateOne({ _id: 1 }, { $inc: { like: +1 } });
+  await db
+    .collection('post')
+    .updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
 });
 
 /* 수정하기 만들기3 - form 태그를 이용해서 put/delete 요청하는 방법*/
@@ -169,3 +171,21 @@ app.put('/edit', async (요청, 응답) => {
 
 /* 좋아요 만들기 */
 // 수정하기 중 $set => $int 로 변경 : 기존값에 +/- 하라는 뜻
+// $mul = 곱하기
+// $unset = 필드값 삭제 (거의 안씀)
+
+/* updateOne vs updateMany vs 조건식(필터) */
+//여러게 도큐먼트 수정 - updateMany
+//조건 updateMany({ like: {$gt:10} }  - 좋아요 10이상
+
+/* 글 삭제 버튼 만들기 */
+
+app.delete('/delete', async (요청, 응답) => {
+  //db에 있던 document 삭제하기
+  console.log(요청.query.docid);
+
+  await db
+    .collection('post')
+    .deleteOne({ _id: new ObjectId(요청.query.docid) });
+  응답.send('삭제완료');
+});
