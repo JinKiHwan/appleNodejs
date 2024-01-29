@@ -27,16 +27,18 @@
     </div>
 
     <script>
-      let box = document.querySelectorAll('.list-box');
-
-      for (let i = 0; i < box.length; i++) {
+      for (let i = 0; i < '<%= post.length %>'; i++) {
         document
           .querySelectorAll('.delete')
           [i].addEventListener('click', function (e) {
             console.log(e.target.dataset.id);
             fetch('/delete?docid=' + e.target.dataset.id, {
               method: 'DELETE',
-            });
+            })
+              .then((r) => r.text())
+              .then((r) => {
+                e.target.parentElement.parentElement.style.display = 'none';
+              });
           });
       }
     </script>
