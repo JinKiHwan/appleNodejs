@@ -8,6 +8,25 @@ const methodOverride = require('method-override');
 //수정하기 3 세팅
 app.use(methodOverride('_method'));
 
+/* passport 라이브러리 세팅 */
+const session = require('express-session');
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+
+//app.use 순서 중요
+app.use(passport.initialize());
+app.use(
+  session({
+    secret: '암호화에 쓸 비번', //세션의 document id는 암호화해서 유저에게 보냄 털리면 끝남
+    resave: false, //유저가 요청할 때마다 세션 갱신할건지 의미. 일반적으로 'false'를 해둠
+    saveUninitialized: false, //로그인을 안해도 세션을 만들 것인지를 의미
+    cookie: { maxAge: 60 * 60 * 1000 }, //세션 유지 시간- 설정 안하면 기본 2주임
+  })
+);
+
+app.use(passport.session());
+/* //passport 라이브러리 세팅 */
+
 /* 스타일경로 등록 */
 app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'ejs'); //html 파일이 아닌 ejs파일을 만들어야 함
@@ -224,28 +243,6 @@ app.get('/list/next/:id', async (요청, 응답) => {
 //이 모든 것을 'passport 라이브러리'구현할 시 쉽게 가능
 //npm install express-session passport
 
-/* passport 라이브러리 세팅 */
-const session = require('express-session');
-const passport = require('passport');
-const LocalStrategy = require('passport-local');
-
-//app.use 순서 중요
-app.use(passport.initialize());
-app.use(
-  session({
-    secret: '암호화에 쓸 비번', //세션의 document id는 암호화해서 유저에게 보냄 털리면 끝남
-    resave: false, //유저가 요청할 때마다 세션 갱신할건지 의미. 일반적으로 'false'를 해둠
-    saveUninitialized: false, //로그인을 안해도 세션을 만들 것인지를 의미
-  })
-);
-
-app.use(passport.session());
-/* //passport 라이브러리 세팅 */
-
-app.get('/login', async (요청, 응답) => {
-  응답.render('login.ejs');
-});
-
 //login.ejs에서 정보를 받은 뒤 db랑 비교 후 세션 생성 - passport 라이브러리
 passport.use(
   new LocalStrategy(async (입력한아이디, 입력한비번, cb) => {
@@ -261,11 +258,37 @@ passport.use(
   })
 );
 
+//db 매칭 후 성공이면 세션 생성
+passport.serializeUser((user, done) => {
+  console.log(user);
+  process.nextTick(() => {
+    //node.js에서 내부 코드를 비동기적으로 처리 / 유사품 queueMicrotask()
+    done(null, { id: user._id, username: user.username });
+  });
+});
+
+// 쿠키를 분석하는 역할
+passport.deserializeUser(async (user, done) => {
+  //db랑 비교해서 아이디 전송
+  let result = await db.collection('user').findOne({ _id: new ObjectId(user.id) });
+  //패스워드는 삭제
+  delete result.password;
+  process.nextTick(() => {
+    done(null, result);
+  });
+});
+
+//위 세팅을 마친 뒤 login api기능개발 해야 함
+app.get('/login', async (요청, 응답) => {
+  console.log(요청.user);
+  응답.render('login.ejs');
+});
+
 app.post('/login', async (요청, 응답, next) => {
   /* 위 passport.use 코드 실행 */
   passport.authenticate('local', (error, user, info) => {
     if (error) return 응답.status(500).json(error);
-    if (!error) return 응답.status(401).json(info.message);
+    if (!user) return 응답.status(401).json(info.message);
     요청.logIn(user, (err) => {
       if (err) return next(err);
       응답.redirect('/');
