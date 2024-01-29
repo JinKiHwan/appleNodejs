@@ -2,6 +2,12 @@
 const express = require('express');
 const app = express();
 
+//수정하기 3 세팅
+const methodOverride = require('method-override');
+
+//수정하기 3 세팅
+app.use(methodOverride('_method'));
+
 /* 스타일경로 등록 */
 app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'ejs'); //html 파일이 아닌 ejs파일을 만들어야 함
@@ -14,7 +20,8 @@ app.use(express.urlencoded({ extended: true }));
 const { MongoClient, ObjectId } = require('mongodb');
 
 let db;
-const url = 'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority'; //몽고디비 database -> connect -> drivers
+const url =
+  'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority'; //몽고디비 database -> connect -> drivers
 new MongoClient(url)
   .connect()
   .then((client) => {
@@ -99,7 +106,9 @@ app.post('/add', async (요청, 응답) => {
     if (요청.body.title == '' || 요청.body.content == '') {
       응답.send('제목입력안했음;');
     } else {
-      await db.collection('post').insertOne({ title: 요청.body.title, content: 요청.body.content });
+      await db
+        .collection('post')
+        .insertOne({ title: 요청.body.title, content: 요청.body.content });
       응답.redirect('/list');
     }
   } catch (e) {
@@ -111,7 +120,9 @@ app.post('/add', async (요청, 응답) => {
 
 app.get('/detail/:id', async (요청, 응답) => {
   try {
-    let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
+    let result = await db
+      .collection('post')
+      .findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
 
     if (result == null) {
       응답.status(500).send('이상한 URL 입력했는데요');
@@ -126,17 +137,35 @@ app.get('/detail/:id', async (요청, 응답) => {
 /* 수정하기 기능개발 */
 
 app.get('/edit/:id', async (요청, 응답) => {
-  let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) });
+  let result = await db
+    .collection('post')
+    .findOne({ _id: new ObjectId(요청.params.id) });
 
   //console.log(요청.body);
   응답.render('edit.ejs', { result: result });
 });
 
-app.post('/edit', async (요청, 응답) => {
+app.put('/edit', async (요청, 응답) => {
   /* 글 수정하기 */
   // db.collection('post').updateOne({어떤 document},{$set:{어떤 내용으로 수정할지}})
 
-  let result = await db.collection('post').updateOne({ _id: new ObjectId(요청.body.id) }, { $set: { title: 요청.body.title, content: 요청.body.content } });
+  let result = await db
+    .collection('post')
+    .updateOne(
+      { _id: new ObjectId(요청.body.id) },
+      { $set: { title: 요청.body.title, content: 요청.body.content } }
+    );
 
   응답.redirect('/list');
+
+  await db.collection('post').updateOne({ _id: 1 }, { $inc: { like: +1 } });
 });
+
+/* 수정하기 만들기3 - form 태그를 이용해서 put/delete 요청하는 방법*/
+//1. npm install method-override
+//2. 상단에 const methodOverride = require('method-override') / app.use(methodOverride('_method'))  추가
+//3. form태그에서 actions의 url+?_metohd=PUT 추가
+//4. 서버js에서 post->put으로 수정
+
+/* 좋아요 만들기 */
+// 수정하기 중 $set => $int 로 변경 : 기존값에 +/- 하라는 뜻
