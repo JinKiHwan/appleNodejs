@@ -79,7 +79,7 @@ function checkLogin(요청, 응답, next) {
   next(); //다음으로 실행해주세요~
 }
 
-app.use(checkLogin); //이 하단에 있는 모든 api에 checkLogin 미들웨어 적용 해주십쇼~
+/* app.use(checkLogin); */ //이 하단에 있는 모든 api에 checkLogin 미들웨어 적용 해주십쇼~
 
 /* app.use('제한사항',checkLogin); */
 //제한사항에만 적용해주세요 (하위 URL 모두 적용)
