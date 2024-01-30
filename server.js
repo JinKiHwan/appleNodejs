@@ -163,7 +163,7 @@ app.get('/write', (요청, 응답) => {
   응답.render('write.ejs');
 });
 
-app.post('/add', upload.single('img1'), async (요청, 응답) => {
+app.post('/add', upload.array('img1', 5), async (요청, 응답) => {
   console.log(요청.file);
 
   //console.log(요청.body);
