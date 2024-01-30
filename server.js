@@ -19,6 +19,9 @@ const bcrypt = require('bcrypt');
 /* 세션db 저장하기 세팅 */
 const MongoStore = require('connect-mongo');
 
+/* 환경변수 보관 세팅 */
+require('dotenv').config();
+
 //app.use 순서 중요
 app.use(passport.initialize());
 app.use(
@@ -50,8 +53,7 @@ app.use(express.urlencoded({ extended: true }));
 const { MongoClient, ObjectId } = require('mongodb');
 
 let db;
-const url =
-  'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority'; //몽고디비 database -> connect -> drivers
+const url = process.env.DB_URL; //몽고디비 database -> connect -> drivers
 new MongoClient(url)
   .connect()
   .then((client) => {
@@ -62,7 +64,7 @@ new MongoClient(url)
     //웹서비스를 이용하는 것 = 타인 컴퓨터에 접속하는 것과 동일
     //평소에는 접속 불가, Port는 타인이 접속할 수 있게 만드는 것이다.
     //고로 하단 listen은 타인 접속허가
-    app.listen(8080, () => {
+    app.listen(process.env.PORT, () => {
       console.log('http://localhost:8080 에서 서버 실행중');
     });
   })
@@ -338,10 +340,18 @@ app.post('/register', async (요청, 응답) => {
   /* await bcrypt.hash('문자', 10<-몇번 해싱할지 정하는 것) */
   let 해시 = await bcrypt.hash(요청.body.password, 10);
 
-  await db.collection('user').insertOne({
-    username: 요청.body.username,
-    password: 해시,
-  });
+  await db
+    .collection('user')
+    .findOne({ username: 요청.body.username }, function (에러, 결과) {
+      if (!기존사용자 === null) {
+        응답.send('중복계정임');
+      } else {
+        db.collection('user').insertOne({
+          username: 요청.body.username,
+          password: 해시,
+        });
+      }
+    });
 
   //조건을 거는게 좋음. 예: input 빈칸일 경우, password 짧을경우, 아이디 중복일 경우 등등
 
@@ -353,3 +363,8 @@ app.post('/register', async (요청, 응답) => {
 // 세션 db 저장방법 : 라이브러리 기능인 connect-mongo 사용
 // npm install connect-mongo
 // 상단에 세팅 const MongoStore = require('connect-mongo')
+
+/* 환경변수 */
+//db 접속 url, 세션 암호화 비번 등을 환경변수라고 함
+//이러한 환경변수들은 별도보관이 좋음 (안전성 문제)
+//npm install dotenv
