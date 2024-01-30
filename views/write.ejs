@@ -9,11 +9,18 @@
   <body class="grey-bg">
     <%- include('nav.ejs') %>
 
-    <form class="form-box" action="/add" method="POST">
+    <form class="form-box" action="/add" method="POST" enctype="multipart/form-data">
       <h4>글쓰기</h4>
       <input name="title" />
       <input name="content" />
+      <input type="file" name="img1" accept="image/*" />
       <button type="submit">전송</button>
     </form>
+
+    <!-- aws s3에 데이터 저장하기-->
+    <!-- 1. npm install multer multer-s3 @aws-sdk/client-s3 -->
+    <!-- multer : 유저가 보낸 파일을 쉽게 다룰 수 있어짐 -->
+    <!-- multer-s3 : s3 업로드를 도와줌 -->
+    <!-- @aws-sdk/client-s3 : node.js에서 AWS 사용시 필요-->
   </body>
 </html>

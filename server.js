@@ -31,8 +31,7 @@ app.use(
     saveUninitialized: false, //로그인을 안해도 세션을 만들 것인지를 의미
     cookie: { maxAge: 60 * 60 * 1000 }, //세션 유지 시간- 설정 안하면 기본 2주임
     store: MongoStore.create({
-      mongoUrl:
-        'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority', //DB접속용 URL
+      mongoUrl: 'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority', //DB접속용 URL
       dbName: 'forum', //db 이름
     }),
   })
@@ -40,6 +39,30 @@ app.use(
 
 app.use(passport.session());
 /* //passport 라이브러리 세팅 */
+
+/* aws s3 이미지 업로드 세팅*/
+const { S3Client } = require('@aws-sdk/client-s3');
+const multer = require('multer');
+const multerS3 = require('multer-s3');
+const s3 = new S3Client({
+  region: 'ap-northeast-2',
+  credentials: {
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_ACCES_KEY,
+  },
+});
+
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: 'eljsh95forum',
+    key: function (요청, file, cb) {
+      cb(null, Date.now().toString()); //업로드시 파일명 변경가능
+    },
+  }),
+});
+
+/* //aws s3 이미지 업로드 세팅*/
 
 /* 스타일경로 등록 */
 app.use(express.static(__dirname + '/public'));
@@ -140,33 +163,31 @@ app.get('/write', (요청, 응답) => {
   응답.render('write.ejs');
 });
 
-app.post('/add', async (요청, 응답) => {
+app.post('/add', upload.single('img1'), async (요청, 응답) => {
+  console.log(요청.file);
+
   //console.log(요청.body);
 
   /* 서버가 만약 다운된다던지 문제가 있었을 경우 try/catch*/
-  try {
+  /* try {
     //먼저 실행해보고
 
     if (요청.body.title == '' || 요청.body.content == '') {
       응답.send('제목입력안했음;');
     } else {
-      await db
-        .collection('post')
-        .insertOne({ title: 요청.body.title, content: 요청.body.content });
+      await db.collection('post').insertOne({ title: 요청.body.title, content: 요청.body.content });
       응답.redirect('/list');
     }
   } catch (e) {
     //에러시 이거 ㄱㄱ
     console.log(e);
     응답.status(500).send('서버 에러나써요');
-  }
+  } */
 });
 
 app.get('/detail/:id', async (요청, 응답) => {
   try {
-    let result = await db
-      .collection('post')
-      .findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
+    let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
 
     if (result == null) {
       응답.status(500).send('이상한 URL 입력했는데요');
@@ -181,9 +202,7 @@ app.get('/detail/:id', async (요청, 응답) => {
 /* 수정하기 기능개발 */
 
 app.get('/edit/:id', async (요청, 응답) => {
-  let result = await db
-    .collection('post')
-    .findOne({ _id: new ObjectId(요청.params.id) });
+  let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) });
 
   //console.log(요청.body);
   응답.render('edit.ejs', { result: result });
@@ -193,18 +212,11 @@ app.put('/edit', async (요청, 응답) => {
   /* 글 수정하기 */
   // db.collection('post').updateOne({어떤 document},{$set:{어떤 내용으로 수정할지}})
 
-  let result = await db
-    .collection('post')
-    .updateOne(
-      { _id: new ObjectId(요청.body.id) },
-      { $set: { title: 요청.body.title, content: 요청.body.content } }
-    );
+  let result = await db.collection('post').updateOne({ _id: new ObjectId(요청.body.id) }, { $set: { title: 요청.body.title, content: 요청.body.content } });
 
   응답.redirect('/list');
 
-  await db
-    .collection('post')
-    .updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
+  await db.collection('post').updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
 });
 
 /* 수정하기 만들기3 - form 태그를 이용해서 put/delete 요청하는 방법*/
@@ -228,9 +240,7 @@ app.delete('/delete', async (요청, 응답) => {
   //db에 있던 document 삭제하기
   console.log(요청.query.docid);
 
-  await db
-    .collection('post')
-    .deleteOne({ _id: new ObjectId(요청.query.docid) });
+  await db.collection('post').deleteOne({ _id: new ObjectId(요청.query.docid) });
   응답.send('삭제완료');
 });
 
@@ -287,9 +297,7 @@ app.get('/list/next/:id', async (요청, 응답) => {
 //login.ejs에서 정보를 받은 뒤 db랑 비교 후 세션 생성 - passport 라이브러리
 passport.use(
   new LocalStrategy(async (입력한아이디, 입력한비번, cb) => {
-    let result = await db
-      .collection('user')
-      .findOne({ username: 입력한아이디 });
+    let result = await db.collection('user').findOne({ username: 입력한아이디 });
     if (!result) {
       return cb(null, false, { message: '아이디 DB에 없음' });
     }
@@ -315,9 +323,7 @@ passport.serializeUser((user, done) => {
 // 쿠키를 분석하는 역할
 passport.deserializeUser(async (user, done) => {
   //db랑 비교해서 아이디 전송
-  let result = await db
-    .collection('user')
-    .findOne({ _id: new ObjectId(user.id) });
+  let result = await db.collection('user').findOne({ _id: new ObjectId(user.id) });
   //패스워드는 삭제
   delete result.password;
   process.nextTick(() => {
