@@ -336,7 +336,7 @@ app.get('/register', (요청, 응답) => {
 
 app.post('/register', async (요청, 응답) => {
   /* await bcrypt.hash('문자', 10<-몇번 해싱할지 정하는 것) */
-  let 해시 = await bcrypt.hash(요청.body.username, 10);
+  let 해시 = await bcrypt.hash(요청.body.password, 10);
 
   await db.collection('user').insertOne({
     username: 요청.body.username,
