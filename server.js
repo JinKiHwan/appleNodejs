@@ -163,26 +163,28 @@ app.get('/write', (요청, 응답) => {
   응답.render('write.ejs');
 });
 
-app.post('/add', upload.array('img1', 5), async (요청, 응답) => {
-  console.log(요청.file);
-
+app.post('/add', upload.single('img1'), async (요청, 응답) => {
   //console.log(요청.body);
 
   /* 서버가 만약 다운된다던지 문제가 있었을 경우 try/catch*/
-  /* try {
+  try {
     //먼저 실행해보고
 
     if (요청.body.title == '' || 요청.body.content == '') {
       응답.send('제목입력안했음;');
     } else {
-      await db.collection('post').insertOne({ title: 요청.body.title, content: 요청.body.content });
+      await db.collection('post').insertOne({
+        title: 요청.body.title,
+        content: 요청.body.content,
+        img: 요청.file.location,
+      });
       응답.redirect('/list');
     }
   } catch (e) {
     //에러시 이거 ㄱㄱ
     console.log(e);
     응답.status(500).send('서버 에러나써요');
-  } */
+  }
 });
 
 app.get('/detail/:id', async (요청, 응답) => {
