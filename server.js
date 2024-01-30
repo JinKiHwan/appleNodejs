@@ -71,9 +71,21 @@ new MongoClient(url)
   .catch((err) => {
     console.log(err);
   });
-/* //몽고디비 연동하기 위한 세팅 */
 
-app.get('/', (요청, 응답) => {
+function checkLogin(요청, 응답, next) {
+  if (!요청.user) {
+    응답.send('로그인하세요~');
+  }
+  next(); //다음으로 실행해주세요~
+}
+
+app.use(checkLogin); //이 하단에 있는 모든 api에 checkLogin 미들웨어 적용 해주십쇼~
+
+/* app.use('제한사항',checkLogin); */
+//제한사항에만 적용해주세요 (하위 URL 모두 적용)
+
+/* //몽고디비 연동하기 위한 세팅 */
+app.get('/', checkLogin, (요청, 응답) => {
   응답.sendFile(__dirname + '/index.html');
 });
 app.get('/news', (요청, 응답) => {
@@ -293,7 +305,7 @@ passport.use(
 
 //db 매칭 후 성공이면 세션 생성
 passport.serializeUser((user, done) => {
-  console.log(user);
+  //console.log(user);
   process.nextTick(() => {
     //node.js에서 내부 코드를 비동기적으로 처리 / 유사품 queueMicrotask()
     done(null, { id: user._id, username: user.username });
@@ -340,18 +352,10 @@ app.post('/register', async (요청, 응답) => {
   /* await bcrypt.hash('문자', 10<-몇번 해싱할지 정하는 것) */
   let 해시 = await bcrypt.hash(요청.body.password, 10);
 
-  await db
-    .collection('user')
-    .findOne({ username: 요청.body.username }, function (에러, 결과) {
-      if (!기존사용자 === null) {
-        응답.send('중복계정임');
-      } else {
-        db.collection('user').insertOne({
-          username: 요청.body.username,
-          password: 해시,
-        });
-      }
-    });
+  await db.collection('user').insertOne({
+    username: 요청.body.username,
+    password: 해시,
+  });
 
   //조건을 거는게 좋음. 예: input 빈칸일 경우, password 짧을경우, 아이디 중복일 경우 등등
 
