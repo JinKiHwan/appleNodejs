@@ -16,6 +16,9 @@ const LocalStrategy = require('passport-local');
 /* bcrypt 해싱 세팅 */
 const bcrypt = require('bcrypt');
 
+/* 세션db 저장하기 세팅 */
+const MongoStore = require('connect-mongo');
+
 //app.use 순서 중요
 app.use(passport.initialize());
 app.use(
@@ -24,6 +27,11 @@ app.use(
     resave: false, //유저가 요청할 때마다 세션 갱신할건지 의미. 일반적으로 'false'를 해둠
     saveUninitialized: false, //로그인을 안해도 세션을 만들 것인지를 의미
     cookie: { maxAge: 60 * 60 * 1000 }, //세션 유지 시간- 설정 안하면 기본 2주임
+    store: MongoStore.create({
+      mongoUrl:
+        'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority', //DB접속용 URL
+      dbName: 'forum', //db 이름
+    }),
   })
 );
 
@@ -341,3 +349,7 @@ app.post('/register', async (요청, 응답) => {
   //npm install bcrypt
   응답.redirect('/');
 });
+
+// 세션 db 저장방법 : 라이브러리 기능인 connect-mongo 사용
+// npm install connect-mongo
+// 상단에 세팅 const MongoStore = require('connect-mongo')
