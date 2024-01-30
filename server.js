@@ -13,6 +13,9 @@ const session = require('express-session');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 
+/* bcrypt 해싱 세팅 */
+const bcrypt = require('bcrypt');
+
 //app.use 순서 중요
 app.use(passport.initialize());
 app.use(
@@ -39,7 +42,8 @@ app.use(express.urlencoded({ extended: true }));
 const { MongoClient, ObjectId } = require('mongodb');
 
 let db;
-const url = 'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority'; //몽고디비 database -> connect -> drivers
+const url =
+  'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority'; //몽고디비 database -> connect -> drivers
 new MongoClient(url)
   .connect()
   .then((client) => {
@@ -124,7 +128,9 @@ app.post('/add', async (요청, 응답) => {
     if (요청.body.title == '' || 요청.body.content == '') {
       응답.send('제목입력안했음;');
     } else {
-      await db.collection('post').insertOne({ title: 요청.body.title, content: 요청.body.content });
+      await db
+        .collection('post')
+        .insertOne({ title: 요청.body.title, content: 요청.body.content });
       응답.redirect('/list');
     }
   } catch (e) {
@@ -136,7 +142,9 @@ app.post('/add', async (요청, 응답) => {
 
 app.get('/detail/:id', async (요청, 응답) => {
   try {
-    let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
+    let result = await db
+      .collection('post')
+      .findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
 
     if (result == null) {
       응답.status(500).send('이상한 URL 입력했는데요');
@@ -151,7 +159,9 @@ app.get('/detail/:id', async (요청, 응답) => {
 /* 수정하기 기능개발 */
 
 app.get('/edit/:id', async (요청, 응답) => {
-  let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) });
+  let result = await db
+    .collection('post')
+    .findOne({ _id: new ObjectId(요청.params.id) });
 
   //console.log(요청.body);
   응답.render('edit.ejs', { result: result });
@@ -161,11 +171,18 @@ app.put('/edit', async (요청, 응답) => {
   /* 글 수정하기 */
   // db.collection('post').updateOne({어떤 document},{$set:{어떤 내용으로 수정할지}})
 
-  let result = await db.collection('post').updateOne({ _id: new ObjectId(요청.body.id) }, { $set: { title: 요청.body.title, content: 요청.body.content } });
+  let result = await db
+    .collection('post')
+    .updateOne(
+      { _id: new ObjectId(요청.body.id) },
+      { $set: { title: 요청.body.title, content: 요청.body.content } }
+    );
 
   응답.redirect('/list');
 
-  await db.collection('post').updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
+  await db
+    .collection('post')
+    .updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
 });
 
 /* 수정하기 만들기3 - form 태그를 이용해서 put/delete 요청하는 방법*/
@@ -189,7 +206,9 @@ app.delete('/delete', async (요청, 응답) => {
   //db에 있던 document 삭제하기
   console.log(요청.query.docid);
 
-  await db.collection('post').deleteOne({ _id: new ObjectId(요청.query.docid) });
+  await db
+    .collection('post')
+    .deleteOne({ _id: new ObjectId(요청.query.docid) });
   응답.send('삭제완료');
 });
 
@@ -246,13 +265,17 @@ app.get('/list/next/:id', async (요청, 응답) => {
 //login.ejs에서 정보를 받은 뒤 db랑 비교 후 세션 생성 - passport 라이브러리
 passport.use(
   new LocalStrategy(async (입력한아이디, 입력한비번, cb) => {
-    let result = await db.collection('user').findOne({ username: 입력한아이디 });
+    let result = await db
+      .collection('user')
+      .findOne({ username: 입력한아이디 });
     if (!result) {
       return cb(null, false, { message: '아이디 DB에 없음' });
     }
-    if (result.password == 입력한비번) {
+
+    if (await bcrypt.compare(입력한비번, result.password)) {
       return cb(null, result);
     } else {
+      console.log(입력한비번, result.password);
       return cb(null, false, { message: '비번불일치' });
     }
   })
@@ -270,7 +293,9 @@ passport.serializeUser((user, done) => {
 // 쿠키를 분석하는 역할
 passport.deserializeUser(async (user, done) => {
   //db랑 비교해서 아이디 전송
-  let result = await db.collection('user').findOne({ _id: new ObjectId(user.id) });
+  let result = await db
+    .collection('user')
+    .findOne({ _id: new ObjectId(user.id) });
   //패스워드는 삭제
   delete result.password;
   process.nextTick(() => {
@@ -294,4 +319,25 @@ app.post('/login', async (요청, 응답, next) => {
       응답.redirect('/');
     });
   })(요청, 응답, next);
+});
+
+//가입기능, connect-mongo
+app.get('/register', (요청, 응답) => {
+  응답.render('register.ejs');
+});
+
+app.post('/register', async (요청, 응답) => {
+  /* await bcrypt.hash('문자', 10<-몇번 해싱할지 정하는 것) */
+  let 해시 = await bcrypt.hash(요청.body.username, 10);
+
+  await db.collection('user').insertOne({
+    username: 요청.body.username,
+    password: 해시,
+  });
+
+  //조건을 거는게 좋음. 예: input 빈칸일 경우, password 짧을경우, 아이디 중복일 경우 등등
+
+  //패스워드의 경우 해싱하여 저장해야 함
+  //npm install bcrypt
+  응답.redirect('/');
 });
