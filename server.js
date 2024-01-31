@@ -31,8 +31,7 @@ app.use(
     saveUninitialized: false, //로그인을 안해도 세션을 만들 것인지를 의미
     cookie: { maxAge: 60 * 60 * 1000 }, //세션 유지 시간- 설정 안하면 기본 2주임
     store: MongoStore.create({
-      mongoUrl:
-        'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority', //DB접속용 URL
+      mongoUrl: 'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority', //DB접속용 URL
       dbName: 'forum', //db 이름
     }),
   })
@@ -192,15 +191,18 @@ app.post('/add', upload.single('img1'), async (요청, 응답) => {
 
 app.get('/detail/:id', async (요청, 응답) => {
   try {
-    let result = await db
-      .collection('post')
-      .findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
+    let result2 = await db
+      .collection('comment')
+      .find({ parentId: new ObjectId(요청.params.id) })
+      .toArray(); //부모의 id가 현재글의 id
+
+    let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
 
     if (result == null) {
       응답.status(500).send('이상한 URL 입력했는데요');
     }
 
-    응답.render('detail.ejs', { result: result });
+    응답.render('detail.ejs', { result: result, result2: result2 });
   } catch (e) {
     응답.status(500).send('이상한 URL 입력했는데요');
   }
@@ -209,9 +211,7 @@ app.get('/detail/:id', async (요청, 응답) => {
 /* 수정하기 기능개발 */
 
 app.get('/edit/:id', async (요청, 응답) => {
-  let result = await db
-    .collection('post')
-    .findOne({ _id: new ObjectId(요청.params.id) });
+  let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) });
 
   //console.log(요청.body);
   응답.render('edit.ejs', { result: result });
@@ -221,18 +221,11 @@ app.put('/edit', async (요청, 응답) => {
   /* 글 수정하기 */
   // db.collection('post').updateOne({어떤 document},{$set:{어떤 내용으로 수정할지}})
 
-  let result = await db
-    .collection('post')
-    .updateOne(
-      { _id: new ObjectId(요청.body.id) },
-      { $set: { title: 요청.body.title, content: 요청.body.content } }
-    );
+  let result = await db.collection('post').updateOne({ _id: new ObjectId(요청.body.id) }, { $set: { title: 요청.body.title, content: 요청.body.content } });
 
   응답.redirect('/list');
 
-  await db
-    .collection('post')
-    .updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
+  await db.collection('post').updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
 });
 
 /* 수정하기 만들기3 - form 태그를 이용해서 put/delete 요청하는 방법*/
@@ -316,9 +309,7 @@ app.get('/list/next/:id', async (요청, 응답) => {
 //login.ejs에서 정보를 받은 뒤 db랑 비교 후 세션 생성 - passport 라이브러리
 passport.use(
   new LocalStrategy(async (입력한아이디, 입력한비번, cb) => {
-    let result = await db
-      .collection('user')
-      .findOne({ username: 입력한아이디 });
+    let result = await db.collection('user').findOne({ username: 입력한아이디 });
     if (!result) {
       return cb(null, false, { message: '아이디 DB에 없음' });
     }
@@ -344,9 +335,7 @@ passport.serializeUser((user, done) => {
 // 쿠키를 분석하는 역할
 passport.deserializeUser(async (user, done) => {
   //db랑 비교해서 아이디 전송
-  let result = await db
-    .collection('user')
-    .findOne({ _id: new ObjectId(user.id) });
+  let result = await db.collection('user').findOne({ _id: new ObjectId(user.id) });
   //패스워드는 삭제
   delete result.password;
   process.nextTick(() => {
@@ -484,4 +473,21 @@ app.get('/search', async (요청, 응답) => {
 
   let result = await db.collection('post').aggregate(검색조건).toArray(); //aggregare 조건 여러개 추가 가능
   응답.render('search.ejs', { post: result });
+});
+
+/* 댓글기능 */
+//댓글을 해당 글의 db에 저장하면 생길 수 있는 문제점
+//1. array는 원하는 항목 수정삭제가 어려움
+//2. document 1개 용량제한이 16mb
+//3. array의 일부만 가져올 수 없음
+//고로 종속관계의 documnet 따로 생성하여 보관
+
+app.post('/comment', async (요청, 응답) => {
+  await db.collection('comment').insertOne({
+    content: 요청.body.content,
+    writerId: new ObjectId(요청.user.id),
+    writer: 요청.user.username,
+    parentId: new ObjectId(요청.body.parentId),
+  });
+  응답.redirect('back'); //이전페이지 강제로 이동
 });
