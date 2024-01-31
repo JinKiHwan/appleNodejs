@@ -419,3 +419,66 @@ app.use('/shop', require('./routes/shop.js'));
 /* app.get('/shop/pants', (응답, 요청) => {
   응답.send('바지 파는 페이지임');
 }); */
+
+/* 검색기능 */
+// app.get('/search', async (요청, 응답) => {
+//   console.log(요청.query.val);
+//   let result = await db
+//     .collection('post')
+//     .find({ title: 요청.query.val })
+//     .toArray();
+//   응답.render('search.ejs', { post: result });
+// });
+//문제점 - 제목이 정확하지 않으면 찾지 못함
+//정규식을 사용해야함
+//정규식이란? - 문자를 검사하는 식
+
+// app.get('/search', async (요청, 응답) => {
+//   console.log(요청.query.val);
+//   let result = await db
+//     .collection('post')
+//     .find({ title: { $regex: 요청.query.val } })
+//     .toArray();
+//   응답.render('search.ejs', { post: result });
+// });
+//정규식의 문제점 - 속도가 매우 느림
+//해결 방법 -> index를 만들어야함
+//index의 장점 ->binary search
+//조건 순서대로 정렬을 해야 함
+//단점 -> 용량이 추가적으로 듦 (정렬이 필요한 콜렉션을 하나 통째로 복사하기 때문) | document 추가 수정 삭제시 index에도 반영해야함
+// app.get('/search', async (요청, 응답) => {
+//   console.log(요청.query.val);
+//   let result = await db
+//     .collection('post')
+//     .find({ $text: { $search: 요청.query.val } }) //제목 부분도 ㄱㄴㄷ 순으로 정렬가능 mongodb의 collection에서 indexes를 클릭하여 index를 만들기 필드는 "title": "text",
+//     .toArray();
+//   응답.render('search.ejs', { post: result });
+// });
+// 위 코드도 단어가 중간에 잘려있읋 시 반영안됨 ..
+
+//그러면 fulltext index(search index)를 만들면 됨
+//mongodb 콜렉션에서 search index 클릭 -> 쭉 만들기
+app.get('/search', async (요청, 응답) => {
+  console.log(요청.query.val);
+
+  let 검색조건 = [
+    {
+      //search index를 이용한단 뜻
+      $search: {
+        //내가만든 index 이름
+        index: 'title_index',
+        text: {
+          query: 요청.query.val,
+          //검색할 필드
+          path: 'title',
+        },
+      },
+    },
+    {
+      $sort: { _id: 1 }, //결과 정렬 | $limit 갯수 불러오기 제한 , $skip 앞순서 제외하고 그 나머지 | $project: { title: 0} 필드 숨기기 0, 필드 보이기 1
+    },
+  ];
+
+  let result = await db.collection('post').aggregate(검색조건).toArray(); //aggregare 조건 여러개 추가 가능
+  응답.render('search.ejs', { post: result });
+});
