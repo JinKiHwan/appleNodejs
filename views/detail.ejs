@@ -16,9 +16,12 @@
     </div>
 
     <hr style="margin-top: 60px" />
+
+    <% for (let i=0; i < result2.length; i++){ %>
     <div>
-      <p><strong><%= result2[0].writer %></strong> <%= result2[0].content %></p>
+      <p><strong><%= result2[i].writer %></strong> <%= result2[i].content %></p>
     </div>
+    <%}%>
     <form action="/comment" method="POST">
       <input name="content" />
       <input name="parentId" value="<%= result._id %>" style="display: none" />
