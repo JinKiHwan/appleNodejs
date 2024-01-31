@@ -31,7 +31,8 @@ app.use(
     saveUninitialized: false, //로그인을 안해도 세션을 만들 것인지를 의미
     cookie: { maxAge: 60 * 60 * 1000 }, //세션 유지 시간- 설정 안하면 기본 2주임
     store: MongoStore.create({
-      mongoUrl: 'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority', //DB접속용 URL
+      mongoUrl:
+        'mongodb+srv://admin:qwer1234@cluster0.qp8hxwp.mongodb.net/?retryWrites=true&w=majority', //DB접속용 URL
       dbName: 'forum', //db 이름
     }),
   })
@@ -75,10 +76,10 @@ app.use(express.urlencoded({ extended: true }));
 /* 몽고디비 연동하기 위한 세팅 */
 const { MongoClient, ObjectId } = require('mongodb');
 
+let connectDB = require('./database.js');
+
 let db;
-const url = process.env.DB_URL; //몽고디비 database -> connect -> drivers
-new MongoClient(url)
-  .connect()
+connectDB
   .then((client) => {
     console.log('DB연결성공');
     db = client.db('forum');
@@ -97,7 +98,7 @@ new MongoClient(url)
 
 function checkLogin(요청, 응답, next) {
   if (!요청.user) {
-    응답.send('로그인하세요~');
+    응답.render('beforelogin.ejs');
   }
   next(); //다음으로 실행해주세요~
 }
@@ -189,7 +190,9 @@ app.post('/add', upload.single('img1'), async (요청, 응답) => {
 
 app.get('/detail/:id', async (요청, 응답) => {
   try {
-    let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
+    let result = await db
+      .collection('post')
+      .findOne({ _id: new ObjectId(요청.params.id) }); //db에서 자료 하나만 가져오는 방법
 
     if (result == null) {
       응답.status(500).send('이상한 URL 입력했는데요');
@@ -204,7 +207,9 @@ app.get('/detail/:id', async (요청, 응답) => {
 /* 수정하기 기능개발 */
 
 app.get('/edit/:id', async (요청, 응답) => {
-  let result = await db.collection('post').findOne({ _id: new ObjectId(요청.params.id) });
+  let result = await db
+    .collection('post')
+    .findOne({ _id: new ObjectId(요청.params.id) });
 
   //console.log(요청.body);
   응답.render('edit.ejs', { result: result });
@@ -214,11 +219,18 @@ app.put('/edit', async (요청, 응답) => {
   /* 글 수정하기 */
   // db.collection('post').updateOne({어떤 document},{$set:{어떤 내용으로 수정할지}})
 
-  let result = await db.collection('post').updateOne({ _id: new ObjectId(요청.body.id) }, { $set: { title: 요청.body.title, content: 요청.body.content } });
+  let result = await db
+    .collection('post')
+    .updateOne(
+      { _id: new ObjectId(요청.body.id) },
+      { $set: { title: 요청.body.title, content: 요청.body.content } }
+    );
 
   응답.redirect('/list');
 
-  await db.collection('post').updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
+  await db
+    .collection('post')
+    .updateMany({ like: { $gt: 1 } }, { $inc: { like: +1 } });
 });
 
 /* 수정하기 만들기3 - form 태그를 이용해서 put/delete 요청하는 방법*/
@@ -242,7 +254,9 @@ app.delete('/delete', async (요청, 응답) => {
   //db에 있던 document 삭제하기
   console.log(요청.query.docid);
 
-  await db.collection('post').deleteOne({ _id: new ObjectId(요청.query.docid) });
+  await db
+    .collection('post')
+    .deleteOne({ _id: new ObjectId(요청.query.docid) });
   응답.send('삭제완료');
 });
 
@@ -299,7 +313,9 @@ app.get('/list/next/:id', async (요청, 응답) => {
 //login.ejs에서 정보를 받은 뒤 db랑 비교 후 세션 생성 - passport 라이브러리
 passport.use(
   new LocalStrategy(async (입력한아이디, 입력한비번, cb) => {
-    let result = await db.collection('user').findOne({ username: 입력한아이디 });
+    let result = await db
+      .collection('user')
+      .findOne({ username: 입력한아이디 });
     if (!result) {
       return cb(null, false, { message: '아이디 DB에 없음' });
     }
@@ -325,7 +341,9 @@ passport.serializeUser((user, done) => {
 // 쿠키를 분석하는 역할
 passport.deserializeUser(async (user, done) => {
   //db랑 비교해서 아이디 전송
-  let result = await db.collection('user').findOne({ _id: new ObjectId(user.id) });
+  let result = await db
+    .collection('user')
+    .findOne({ _id: new ObjectId(user.id) });
   //패스워드는 삭제
   delete result.password;
   process.nextTick(() => {
@@ -380,3 +398,24 @@ app.post('/register', async (요청, 응답) => {
 //db 접속 url, 세션 암호화 비번 등을 환경변수라고 함
 //이러한 환경변수들은 별도보관이 좋음 (안전성 문제)
 //npm install dotenv
+
+/* API 분리하기(ROUTER) */
+// 1. server랑 동일한 위치에 routes 폴더 생성
+// 2. shop.js 파일 생성
+// 3. shop.js 세팅하기
+// 4. server.js로 import 하기(미들웨어 식으로)
+//app.use('/', require('./routes/shop.js'));
+// 5. 라우터의 공통된 URL 축약가능
+app.use('/shop', require('./routes/shop.js'));
+
+// *단점 => db.collection 과 같은 db변수를 쓰기 복잡
+// *server.js에서 export하여 상호참조할 경우 문제 생길 수 있음
+// => db생성 파일을 따로 만들어 뿌려주면 해결
+
+/* app.get('/shop/shirts', (응답, 요청) => {
+  응답.send('셔츠 파는 페이지임');
+}); */
+
+/* app.get('/shop/pants', (응답, 요청) => {
+  응답.send('바지 파는 페이지임');
+}); */
