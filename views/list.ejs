@@ -38,8 +38,6 @@
 
     <img src="/resource/image.png?123" alt="" />
 
-    <a href="/list/next/<%= post[post.length-1]._id %>">다음</a>
-
     <script>
       for (let i = 0; i < '<%= post.length %>'; i++) {
         document
@@ -49,9 +47,18 @@
             fetch('/delete?docid=' + e.target.dataset.id, {
               method: 'DELETE',
             })
-              .then((r) => r.text())
+              .then((r) => {
+                if (r.ok) {
+                  return r.text(); // 성공한 경우에만 텍스트로 변환
+                } else {
+                  throw new Error('Delete request failed');
+                }
+              })
               .then((r) => {
                 e.target.parentElement.parentElement.style.display = 'none';
+              })
+              .catch((error) => {
+                console.error('Error:', error);
               });
           });
       }
