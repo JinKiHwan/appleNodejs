@@ -22,5 +22,23 @@
       <input class="chat-input" />
       <button class="chat-button">전송</button>
     </div>
+
+    <!-- socket.io 세팅 -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.7.2/client-dist/socket.io.min.js"></script>
+    <script>
+      const socket = io();
+      socket.emit('ask-join', '1'); //데이터를 서버에 전송
+
+      document
+        .querySelector('.chat-button')
+        .addEventListener('click', function () {
+          socket.emit('message', { msg: '반갑', room: '1' });
+        });
+
+      //socket.on('데이터이름', (data)=>{})데이터 수신
+      socket.on('broadcast', (data) => {
+        console.log(data);
+      });
+    </script>
   </body>
 </html>

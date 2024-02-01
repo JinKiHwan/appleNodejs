@@ -19,6 +19,12 @@ const bcrypt = require('bcrypt');
 /* 세션db 저장하기 세팅 */
 const MongoStore = require('connect-mongo');
 
+/* socket.io 세팅 */
+const { createServer } = require('http');
+const { Server } = require('socket.io');
+const server = createServer(app);
+const io = new Server(server);
+
 /* 환경변수 보관 세팅 */
 require('dotenv').config();
 
@@ -88,7 +94,7 @@ connectDB
     //웹서비스를 이용하는 것 = 타인 컴퓨터에 접속하는 것과 동일
     //평소에는 접속 불가, Port는 타인이 접속할 수 있게 만드는 것이다.
     //고로 하단 listen은 타인 접속허가
-    app.listen(process.env.PORT, () => {
+    server.listen(process.env.PORT, () => {
       console.log('http://localhost:8080 에서 서버 실행중');
     });
   })
@@ -533,3 +539,29 @@ app.get('/chat/detail/:id', async (요청, 응답) => {
     .findOne({ _id: new ObjectId(요청.params.id) });
   응답.render('chatDetail.ejs', { result: result });
 });
+//양방향 소통하는 websocket -> socket.io 라이브러리 사용(express랑 같이 자주 쓰임)
+//npm i socket.io@4
+//server.js에서 세팅 후 html파일도 세팅
+
+io.on('connection', (socket) => {
+  console.log('어떤놈이 웹소켓연결함?');
+
+  socket.on('age', (data) => {
+    console.log('유저가 보낸거', data);
+    //io.emit('데이터이름', '데이터'); 데이터 발송
+    io.emit('name', 'kim');
+  }); //데이터 수신
+
+  // room 이용하기
+  //socket.join('룸이름');
+
+  socket.on('ask-join', (data) => {
+    socket.join(data);
+  });
+
+  socket.on('message', (data) => {
+    console.log(data);
+    io.to(data.room).emit('broadcast', data.msg); //수신한 메세지 room으로 전송
+  });
+});
+//https://socket.io/how-to/use-with-express-session 웹소켓 사용방법
