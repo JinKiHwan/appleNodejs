@@ -559,9 +559,9 @@ io.on('connection', (socket) => {
     socket.join(data);
   });
 
-  socket.on('message', (data) => {
-    console.log(data);
-    io.to(data.room).emit('broadcast', data.msg); //수신한 메세지 room으로 전송
+  socket.on('message-send', (data) => {
+    //console.log(data);
+    io.to(data.room).emit('message-broadcast', data.msg); //수신한 메세지 room으로 전송
   });
 });
 //https://socket.io/how-to/use-with-express-session 웹소켓 사용방법

@@ -27,17 +27,30 @@
     <script src="https://cdn.jsdelivr.net/npm/socket.io@4.7.2/client-dist/socket.io.min.js"></script>
     <script>
       const socket = io();
-      socket.emit('ask-join', '1'); //데이터를 서버에 전송
+      socket.emit('ask-join', '<%= result._id%>'); //데이터를 서버에 전송
 
       document
         .querySelector('.chat-button')
         .addEventListener('click', function () {
-          socket.emit('message', { msg: '반갑', room: '1' });
+          let 입력한것 = document.querySelector('.chat-input').value;
+          socket.emit('message-send', {
+            msg: 입력한것,
+            room: '<%= result._id%>',
+          });
         });
 
       //socket.on('데이터이름', (data)=>{})데이터 수신
       socket.on('broadcast', (data) => {
         console.log(data);
+      });
+
+      socket.on('message-broadcast', (data) => {
+        document
+          .querySelector('.chat-screen')
+          .insertAdjacentHTML(
+            'beforeend',
+            `<div class="chat-box"><span>${data}</span></div>`
+          );
       });
     </script>
   </body>
